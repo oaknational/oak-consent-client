@@ -47,7 +47,7 @@ function MyComponent() {
 Or use a consent gate:
 
 ```tsx
-import { ConsentGate } from "@oaknational/consent/react";
+import { ConsentGate } from "@oaknational/oak-consent-client";
 function MyComponent() {
   return (
     <>
