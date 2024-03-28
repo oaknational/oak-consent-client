@@ -19,8 +19,8 @@ export const cookieSchema = z.object({
       id: z.string(),
       v: z.number(),
       slug: z.string(),
-      state: z.enum(["granted", "denied"]),
-    }),
+      consent: z.enum(["granted", "denied"]),
+    })
   ),
 });
 export const consentLogSchema = z.object({
@@ -52,7 +52,7 @@ export type LogConsents = (
   consents: {
     policyId: string;
     consentState: "granted" | "denied";
-  }[],
+  }[]
 ) => Promise<void>;
 export type RequiresInteraction = () => boolean;
 export type OnError = (error: unknown) => void;

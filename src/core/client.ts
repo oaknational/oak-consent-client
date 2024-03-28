@@ -16,6 +16,23 @@ import { getCookie, setCookie } from "./cookies";
 
 const logger = console;
 
+function policyConsentsAreEqual(a: PolicyConsent, b: PolicyConsent) {
+  return a.policyId === b.policyId && a.consentState === b.consentState;
+}
+
+function policyConsentsHaveChanged(
+  a: PolicyConsent[],
+  b: PolicyConsent[]
+): boolean {
+  if (a.length !== b.length) {
+    return true;
+  }
+
+  return !a.every((policyConsent, index) =>
+    policyConsentsAreEqual(policyConsent, b[index] as PolicyConsent)
+  );
+}
+
 export class OakConsentClient {
   public appSlug: string;
   public userId: string;
@@ -71,6 +88,18 @@ export class OakConsentClient {
   }
 
   public setState = (newState: State) => {
+    if (
+      !policyConsentsHaveChanged(
+        this.state.policyConsents,
+        newState.policyConsents
+      )
+    ) {
+      /**
+       * no need to update state if policy consents have not changed
+       */
+      return;
+    }
+
     /**
      * computed properties
      */
@@ -130,11 +159,11 @@ export class OakConsentClient {
       const json = val ? JSON.parse(val) : null;
       if (!json) return [];
       const parsed = cookieSchema.parse(json);
-      const consents = parsed.policies.map((c) => ({
-        policyId: c.id,
-        policySlug: c.slug,
-        policyVersion: c.v,
-        consentState: c.state,
+      const consents = parsed.policies.map((policy) => ({
+        policyId: policy.id,
+        policySlug: policy.slug,
+        policyVersion: policy.v,
+        consentState: policy.consent,
         userId: parsed.user,
         appSlug: parsed.app,
       }));

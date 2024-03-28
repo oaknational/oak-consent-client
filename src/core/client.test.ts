@@ -2,7 +2,7 @@ import { jest, beforeEach, describe, expect, it } from "@jest/globals";
 import fetchMock from "jest-fetch-mock";
 
 import { OakConsentClient } from "./client";
-import { Policy, State } from "../types";
+import { ConsentState, Policy, State } from "../types";
 
 const setCookieMock = jest.fn();
 const getCookieMock = jest.fn();
@@ -79,12 +79,22 @@ describe("OakConsentClient", () => {
   });
 
   describe("State Management and Listeners", () => {
-    it("should notify listeners when the state changes", () => {
+    it("should notify listeners when the state changes", async () => {
       const client = new OakConsentClient(testProps);
+      await client.isReady;
       const listenerMock = jest.fn();
 
+      const granted: ConsentState = "granted";
+
       client.onStateChange(listenerMock);
-      client.setState({ policyConsents: [], requiresInteraction: true });
+      client.setState({
+        policyConsents: [
+          ...client
+            .getState()
+            .policyConsents.map((pc) => ({ ...pc, consentState: granted })),
+        ],
+        requiresInteraction: true,
+      });
 
       expect(listenerMock).toHaveBeenCalledTimes(1);
     });
@@ -360,6 +370,21 @@ describe("OakConsentClient", () => {
           consentedToPreviousVersion: true,
         },
       ]);
+    });
+  });
+
+  describe("state", () => {
+    it("state should not be updated if policies or consents are unchanged", () => {
+      const client = new OakConsentClient(testProps);
+      const state = client.getState();
+      client.setState({ ...state, policyConsents: [...state.policyConsents] });
+      expect(client.getState()).toBe(state);
+    });
+    it("state values should not be updated if policies or consents are unchanged", () => {
+      const client = new OakConsentClient(testProps);
+      const state = client.getState();
+      client.setState({ ...state, policyConsents: [...state.policyConsents] });
+      expect(client.getState().policyConsents).toBe(state.policyConsents);
     });
   });
 });
