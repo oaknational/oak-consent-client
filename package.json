@@ -9,8 +9,16 @@
     "dist"
   ],
   "scripts": {
-    "test": "jest",
-    "build": "rollup -c --bundleConfigAsCjs"
+    "build": "rollup -c --bundleConfigAsCjs",
+    "build:watch": "rollup -c --bundleConfigAsCjs --watch",
+    "check-types": "tsc",
+    "format": "prettier '**/*.{j,t}{s,sx}' --write",
+    "format:precommit": "prettier '**/*.{j,t}{s,sx}' --write",
+    "format:check": "prettier '**/*.{j,t}{s,sx}' --check",
+    "lint": "eslint src/**/*",
+    "lint:precommit": "eslint src/**/* --fix",
+    "test": "jest --watch --collectCoverage=false",
+    "test:ci": "jest"
   },
   "keywords": [],
   "author": "",
@@ -28,18 +36,32 @@
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.24.1",
+    "@commitlint/cli": "^18.4.4",
+    "@commitlint/config-conventional": "^18.4.4",
     "@jest/globals": "^29.7.0",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-terser": "^0.4.4",
     "@rollup/plugin-typescript": "^11.1.5",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/npm": "^11.0.2",
     "@types/js-cookie": "^3.0.5",
     "@types/react": "^18.2.71",
     "@types/rollup-plugin-peer-deps-external": "^2.2.5",
+    "@typescript-eslint/eslint-plugin": "^6.18.1",
+    "@typescript-eslint/parser": "^6.18.1",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.6.1",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-react": "^7.33.2",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "husky": "^9.0.11",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
     "jest-fetch-mock": "^3.0.3",
+    "prettier": "^3.1.1",
     "rollup": "^4.9.4",
     "rollup-plugin-dts": "^6.1.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
@@ -55,5 +77,25 @@
   "bugs": {
     "url": "https://github.com/oaknational/oak-consent-client/issues"
   },
-  "homepage": "https://github.com/oaknational/oak-consent-client#readme"
+  "homepage": "https://github.com/oaknational/oak-consent-client#readme",
+  "release": {
+    "branches": [
+      "main"
+    ],
+    "plugins": [
+      "@semantic-release/commit-analyzer",
+      "@semantic-release/release-notes-generator",
+      "@semantic-release/npm",
+      [
+        "@semantic-release/git",
+        {
+          "assets": [
+            "package.json",
+            "package-lock.json"
+          ],
+          "message": "build(release): ${nextRelease.version} [skip ci]"
+        }
+      ]
+    ]
+  }
 }

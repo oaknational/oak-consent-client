@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useMemo, useState } from "react";
+import { ReactNode, createContext, useEffect, useMemo, useState } from "react";
 
 import { OakConsentClient } from "../core/client";
 import { GetConsent, LogConsents, State } from "../types";
@@ -9,7 +9,7 @@ type ContextValue = {
   getConsent: GetConsent;
 };
 
-export const oakConsentContext = React.createContext<ContextValue | null>(null);
+export const oakConsentContext = createContext<ContextValue | null>(null);
 
 const OakConsentProvider = ({
   client,
@@ -33,7 +33,7 @@ const OakConsentProvider = ({
       logConsents: client.logConsents,
       getConsent: client.getConsent,
     }),
-    [client, state]
+    [client, state.policyConsents, state.requiresInteraction],
   );
 
   return (
