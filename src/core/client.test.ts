@@ -1,8 +1,9 @@
 import { jest, beforeEach, describe, expect, it } from "@jest/globals";
 import fetchMock from "jest-fetch-mock";
 
+import { ConsentState, Policy, State } from "../types";
+
 import { OakConsentClient } from "./client";
-import { Policy, State } from "../types";
 
 const setCookieMock = jest.fn();
 const getCookieMock = jest.fn();
@@ -29,6 +30,7 @@ const mockPolicies: Policy[] = [
   {
     appSlug: "testApp",
     description: "Privacy Policy",
+    parties: [],
     id: "1",
     label: "Privacy Policy",
     slug: "privacy",
@@ -38,6 +40,16 @@ const mockPolicies: Policy[] = [
   {
     appSlug: "testApp",
     description: "Analytics Policy",
+    parties: [
+      {
+        name: "Mux",
+        url: "https://www.example.com/mux",
+      },
+      {
+        name: "Google Analytics",
+        url: "https://www.example.com/google-analytics",
+      },
+    ],
     id: "2",
     label: "Analytics Policy",
     slug: "analytics",
@@ -51,7 +63,7 @@ beforeEach(() => {
   (fetch as typeof fetchMock).mockResponseOnce(() =>
     Promise.resolve({
       body: JSON.stringify(mockPolicies),
-    })
+    }),
   );
   jest.clearAllMocks();
 });
@@ -79,12 +91,22 @@ describe("OakConsentClient", () => {
   });
 
   describe("State Management and Listeners", () => {
-    it("should notify listeners when the state changes", () => {
+    it("should notify listeners when the state changes", async () => {
       const client = new OakConsentClient(testProps);
+      await client.isReady;
       const listenerMock = jest.fn();
 
+      const granted: ConsentState = "granted";
+
       client.onStateChange(listenerMock);
-      client.setState({ policyConsents: [], requiresInteraction: true });
+      client["setState"]({
+        policyConsents: [
+          ...client
+            .getState()
+            .policyConsents.map((pc) => ({ ...pc, consentState: granted })),
+        ],
+        requiresInteraction: true,
+      });
 
       expect(listenerMock).toHaveBeenCalledTimes(1);
     });
@@ -98,6 +120,7 @@ describe("OakConsentClient", () => {
             policySlug: "privacy",
             policyDescription: "Privacy Policy",
             policyLabel: "Privacy Policy",
+            policyParties: [],
             isStrictlyNecessary: true,
             consentState: "granted",
             consentedToPreviousVersion: false,
@@ -106,14 +129,14 @@ describe("OakConsentClient", () => {
         requiresInteraction: false,
       };
 
-      client.setState(state);
+      client["setState"](state);
 
       expect(client.getState().requiresInteraction).toBe(false);
 
       const [policyConsent] = state.policyConsents;
 
       if (policyConsent) {
-        client.setState({
+        client["setState"]({
           ...state,
           policyConsents: [
             {
@@ -165,7 +188,7 @@ describe("OakConsentClient", () => {
               appSlug: "testApp",
             },
           ]),
-        }
+        },
       );
       expect(state.policyConsents?.[0]?.consentState).toBe("granted");
     });
@@ -187,7 +210,6 @@ describe("OakConsentClient", () => {
       ]);
       expect(setCookieMock).toHaveBeenCalledTimes(1);
       expect(setCookieMock).toHaveBeenCalledWith(
-        "occ/v1",
         JSON.stringify({
           user: client.userId,
           app: "testApp",
@@ -205,7 +227,7 @@ describe("OakConsentClient", () => {
               state: "granted",
             },
           ],
-        })
+        }),
       );
     });
 
@@ -218,7 +240,7 @@ describe("OakConsentClient", () => {
             { id: "1", v: 1, slug: "privacy", state: "granted" },
             { id: "2", v: 1, slug: "analytics", state: "granted" },
           ],
-        })
+        }),
       );
 
       const client = new OakConsentClient(testProps);
@@ -230,7 +252,7 @@ describe("OakConsentClient", () => {
       expect(consents).toEqual(
         expect.arrayContaining([
           expect.objectContaining({ policyId: "1", consentState: "granted" }),
-        ])
+        ]),
       );
     });
   });
@@ -250,10 +272,11 @@ describe("OakConsentClient", () => {
           consentState: "denied",
         },
       ]);
-      const updatedPolicies = [
+      const updatedPolicies: Policy[] = [
         {
           appSlug: "testApp",
           description: "Privacy Policy",
+          parties: [],
           id: "1",
           label: "Privacy Policy",
           slug: "privacy",
@@ -263,6 +286,16 @@ describe("OakConsentClient", () => {
         {
           appSlug: "testApp",
           description: "Analytics Policy version 2",
+          parties: [
+            {
+              name: "Mux",
+              url: "https://www.example.com/mux",
+            },
+            {
+              name: "Google Analytics",
+              url: "https://www.example.com/google-analytics",
+            },
+          ],
           id: "2",
           label: "Analytics Policy",
           slug: "analytics",
@@ -273,7 +306,7 @@ describe("OakConsentClient", () => {
       (fetch as typeof fetchMock).mockResponseOnce(() =>
         Promise.resolve({
           body: JSON.stringify(updatedPolicies),
-        })
+        }),
       );
 
       await client.init();
@@ -283,6 +316,7 @@ describe("OakConsentClient", () => {
           policyId: "1",
           policySlug: "privacy",
           policyDescription: "Privacy Policy",
+          policyParties: [],
           policyLabel: "Privacy Policy",
           isStrictlyNecessary: true,
           consentState: "granted",
@@ -292,6 +326,16 @@ describe("OakConsentClient", () => {
           policyId: "2",
           policySlug: "analytics",
           policyDescription: "Analytics Policy version 2",
+          policyParties: [
+            {
+              name: "Mux",
+              url: "https://www.example.com/mux",
+            },
+            {
+              name: "Google Analytics",
+              url: "https://www.example.com/google-analytics",
+            },
+          ],
           policyLabel: "Analytics Policy",
           isStrictlyNecessary: false,
           consentState: "pending",
@@ -313,7 +357,7 @@ describe("OakConsentClient", () => {
           consentState: "granted",
         },
       ]);
-      const updatedPolicies = [
+      const updatedPolicies: Policy[] = [
         {
           appSlug: "testApp",
           description: "Privacy Policy version 2",
@@ -322,6 +366,7 @@ describe("OakConsentClient", () => {
           slug: "privacy",
           strictlyNecessary: true,
           version: 2,
+          parties: [],
         },
         {
           appSlug: "testApp",
@@ -331,12 +376,22 @@ describe("OakConsentClient", () => {
           slug: "analytics",
           strictlyNecessary: false,
           version: 2,
+          parties: [
+            {
+              name: "Mux",
+              url: "https://www.example.com/mux",
+            },
+            {
+              name: "Google Analytics",
+              url: "https://www.example.com/google-analytics",
+            },
+          ],
         },
       ];
       (fetch as typeof fetchMock).mockResponseOnce(() =>
         Promise.resolve({
           body: JSON.stringify(updatedPolicies),
-        })
+        }),
       );
       await client.init();
       const state = client.getState();
@@ -345,6 +400,7 @@ describe("OakConsentClient", () => {
           policyId: "1",
           policySlug: "privacy",
           policyDescription: "Privacy Policy version 2",
+          policyParties: [],
           policyLabel: "Privacy Policy",
           isStrictlyNecessary: true,
           consentState: "pending",
@@ -354,12 +410,43 @@ describe("OakConsentClient", () => {
           policyId: "2",
           policySlug: "analytics",
           policyDescription: "Analytics Policy version 2",
+          policyParties: [
+            {
+              name: "Mux",
+              url: "https://www.example.com/mux",
+            },
+            {
+              name: "Google Analytics",
+              url: "https://www.example.com/google-analytics",
+            },
+          ],
           policyLabel: "Analytics Policy",
           isStrictlyNecessary: false,
           consentState: "pending",
           consentedToPreviousVersion: true,
         },
       ]);
+    });
+  });
+
+  describe("state", () => {
+    it("state should not be updated if policies or consents are unchanged", () => {
+      const client = new OakConsentClient(testProps);
+      const state = client.getState();
+      client["setState"]({
+        ...state,
+        policyConsents: [...state.policyConsents],
+      });
+      expect(client.getState()).toBe(state);
+    });
+    it("state values should not be updated if policies or consents are unchanged", () => {
+      const client = new OakConsentClient(testProps);
+      const state = client.getState();
+      client["setState"]({
+        ...state,
+        policyConsents: [...state.policyConsents],
+      });
+      expect(client.getState().policyConsents).toBe(state.policyConsents);
     });
   });
 });

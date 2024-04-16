@@ -1,12 +1,12 @@
 import { jest, expect, describe, it, beforeEach } from "@jest/globals";
 import { ReactNode } from "react";
-import { act } from "@testing-library/react";
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import fetchMock from "jest-fetch-mock";
 
-import { OakConsentProvider } from "./ConsentProvider"; // Update with the actual path
 import { OakConsentClient } from "../core/client";
 import { Policy } from "../types";
+
+import { OakConsentProvider } from "./ConsentProvider"; // Update with the actual path
 import { useOakConsent } from "./useOakConsent";
 
 const setCookieMock = jest.fn();
@@ -30,6 +30,7 @@ const mockPolicies: Policy[] = [
   {
     appSlug: "testApp",
     description: "Privacy Policy",
+    parties: [],
     id: "1",
     label: "Privacy Policy",
     slug: "privacy",
@@ -39,6 +40,16 @@ const mockPolicies: Policy[] = [
   {
     appSlug: "testApp",
     description: "Analytics Policy",
+    parties: [
+      {
+        name: "Google Analytics",
+        url: "https://www.example.com/analytics/",
+      },
+      {
+        name: "Hotjar",
+        url: "https://example.com/hotjar/",
+      },
+    ],
     id: "2",
     label: "Analytics Policy",
     slug: "analytics",
@@ -53,7 +64,7 @@ beforeEach(async () => {
   (fetch as typeof fetchMock).mockResponseOnce(() =>
     Promise.resolve({
       body: JSON.stringify(mockPolicies),
-    })
+    }),
   );
   client = new OakConsentClient(testProps);
   await client.isReady;
@@ -75,6 +86,7 @@ describe("OakConsentProvider and useOakConsent", () => {
             consentedToPreviousVersion: false,
             isStrictlyNecessary: true,
             policyDescription: "Privacy Policy",
+            policyParties: [],
             policyId: "1",
             policyLabel: "Privacy Policy",
             policySlug: "privacy",
@@ -84,6 +96,16 @@ describe("OakConsentProvider and useOakConsent", () => {
             consentedToPreviousVersion: false,
             isStrictlyNecessary: false,
             policyDescription: "Analytics Policy",
+            policyParties: [
+              {
+                name: "Google Analytics",
+                url: "https://www.example.com/analytics/",
+              },
+              {
+                name: "Hotjar",
+                url: "https://example.com/hotjar/",
+              },
+            ],
             policyId: "2",
             policyLabel: "Analytics Policy",
             policySlug: "analytics",
@@ -96,7 +118,7 @@ describe("OakConsentProvider and useOakConsent", () => {
       (fetch as typeof fetchMock).mockResponseOnce(() =>
         Promise.resolve({
           body: JSON.stringify(mockPolicies),
-        })
+        }),
       );
       getCookieMock.mockReturnValueOnce(
         JSON.stringify({
@@ -116,7 +138,7 @@ describe("OakConsentProvider and useOakConsent", () => {
               state: "denied",
             },
           ],
-        })
+        }),
       );
       const newClient = new OakConsentClient(testProps);
       await newClient.isReady;
@@ -133,6 +155,7 @@ describe("OakConsentProvider and useOakConsent", () => {
             consentedToPreviousVersion: false,
             isStrictlyNecessary: true,
             policyDescription: "Privacy Policy",
+            policyParties: [],
             policyId: "1",
             policyLabel: "Privacy Policy",
             policySlug: "privacy",
@@ -142,6 +165,16 @@ describe("OakConsentProvider and useOakConsent", () => {
             consentedToPreviousVersion: false,
             isStrictlyNecessary: false,
             policyDescription: "Analytics Policy",
+            policyParties: [
+              {
+                name: "Google Analytics",
+                url: "https://www.example.com/analytics/",
+              },
+              {
+                name: "Hotjar",
+                url: "https://example.com/hotjar/",
+              },
+            ],
             policyId: "2",
             policyLabel: "Analytics Policy",
             policySlug: "analytics",

@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import {
   ConsentLog,
   ConsentStateWithPending,
+  CookieData,
   Listener,
   OnError,
   Policy,
@@ -12,9 +13,27 @@ import {
   cookieSchema,
   policySchema,
 } from "../types";
+
 import { getCookie, setCookie } from "./cookies";
 
 const logger = console;
+
+function policyConsentsAreEqual(a: PolicyConsent, b: PolicyConsent) {
+  return a.policyId === b.policyId && a.consentState === b.consentState;
+}
+
+function policyConsentsHaveChanged(
+  a: PolicyConsent[],
+  b: PolicyConsent[],
+): boolean {
+  if (a.length !== b.length) {
+    return true;
+  }
+
+  return !a.every((policyConsent, index) =>
+    policyConsentsAreEqual(policyConsent, b[index] as PolicyConsent),
+  );
+}
 
 export class OakConsentClient {
   public appSlug: string;
@@ -70,12 +89,24 @@ export class OakConsentClient {
     return this.state;
   }
 
-  public setState = (newState: State) => {
+  private setState = (newState: State) => {
+    if (
+      !policyConsentsHaveChanged(
+        this.state.policyConsents,
+        newState.policyConsents,
+      )
+    ) {
+      /**
+       * no need to update state if policy consents have not changed
+       */
+      return;
+    }
+
     /**
      * computed properties
      */
     newState.requiresInteraction = this.requiresInteraction(
-      newState.policyConsents
+      newState.policyConsents,
     );
     /**
      * update state
@@ -105,36 +136,37 @@ export class OakConsentClient {
 
   private setConsentsInCookies = (consents: ConsentLog[]) => {
     try {
-      const cookie = JSON.stringify(
-        cookieSchema.parse({
-          user: this.userId,
-          app: this.appSlug,
-          policies: consents.map((c) => ({
-            id: c.policyId,
-            v: c.policyVersion,
-            slug: c.policySlug,
-            state: c.consentState,
-          })),
-        })
-      );
+      const cookieData: CookieData = {
+        user: this.userId,
+        app: this.appSlug,
+        policies: consents.map((c) => ({
+          id: c.policyId,
+          v: c.policyVersion,
+          slug: c.policySlug,
+          state: c.consentState,
+        })),
+      };
 
-      setCookie("occ/v1", cookie);
+      const cookie = JSON.stringify(cookieSchema.parse(cookieData));
+
+      setCookie(cookie);
     } catch (error) {
       this.onError(error);
     }
   };
 
   private getConsentsFromCookies = () => {
+    // return [];
     try {
-      const val = getCookie("occ/v1");
+      const val = getCookie();
       const json = val ? JSON.parse(val) : null;
       if (!json) return [];
       const parsed = cookieSchema.parse(json);
-      const consents = parsed.policies.map((c) => ({
-        policyId: c.id,
-        policySlug: c.slug,
-        policyVersion: c.v,
-        consentState: c.state,
+      const consents = parsed.policies.map((policy) => ({
+        policyId: policy.id,
+        policyVersion: policy.v,
+        policySlug: policy.slug,
+        consentState: policy.state,
         userId: parsed.user,
         appSlug: parsed.app,
       }));
@@ -147,7 +179,7 @@ export class OakConsentClient {
   };
 
   public logConsents = async (
-    consents: { policyId: string; consentState: "granted" | "denied" }[]
+    consents: { policyId: string; consentState: "granted" | "denied" }[],
   ) => {
     try {
       if (consents.length !== this.policies?.length) {
@@ -192,7 +224,7 @@ export class OakConsentClient {
 
   public getConsent = (slug: string) => {
     const policyConsent = this.state.policyConsents.find(
-      (pc) => pc.policySlug === slug
+      (pc) => pc.policySlug === slug,
     );
     return policyConsent?.consentState || "pending";
   };
@@ -202,17 +234,17 @@ export class OakConsentClient {
     const consentLogs: ConsentLog[] = this.consentLogs;
     const policyConsents = policies.map((policy) => {
       const consentLog = consentLogs.find(
-        (c) => c.policyId === policy.id && c.policyVersion === policy.version
+        (c) => c.policyId === policy.id && c.policyVersion === policy.version,
       );
 
       let consentedToPreviousVersion = false;
 
       if (!consentLog) {
         const previousConsent = consentLogs.find(
-          (c) => c.policySlug === policy.slug
+          (c) => c.policyId === policy.id,
         );
         consentedToPreviousVersion = Boolean(
-          previousConsent?.consentState === "granted"
+          previousConsent?.consentState === "granted",
         );
       }
 
@@ -224,6 +256,7 @@ export class OakConsentClient {
         policySlug: policy.slug,
         policyDescription: policy.description,
         policyLabel: policy.label,
+        policyParties: policy.parties,
         isStrictlyNecessary: policy.strictlyNecessary,
         consentState,
         consentedToPreviousVersion,
@@ -236,7 +269,7 @@ export class OakConsentClient {
   private fetchPolicies = async () => {
     try {
       const response = await fetch(
-        `${this.policiesUrl}?appSlug=${this.appSlug}`
+        `${this.policiesUrl}?appSlug=${this.appSlug}`,
       );
       if (!response.ok) {
         throw new Error("Failed to fetch policies");

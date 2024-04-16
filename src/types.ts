@@ -7,6 +7,7 @@ export const policySchema = z.object({
   version: z.number(),
   appSlug: z.string(),
   description: z.string(),
+  parties: z.array(z.object({ name: z.string(), url: z.string() })),
   strictlyNecessary: z.boolean(),
 });
 export type Policy = z.infer<typeof policySchema>;
@@ -23,6 +24,7 @@ export const cookieSchema = z.object({
     }),
   ),
 });
+export type CookieData = z.infer<typeof cookieSchema>;
 export const consentLogSchema = z.object({
   userId: z.string(),
   policyId: z.string(),
@@ -39,6 +41,7 @@ export type PolicyConsent = {
   policySlug: string;
   policyDescription: string;
   policyLabel: string;
+  policyParties: { name: string; url: string }[];
   isStrictlyNecessary: boolean;
   consentState: ConsentStateWithPending;
   consentedToPreviousVersion: boolean;
