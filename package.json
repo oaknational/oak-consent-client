@@ -28,7 +28,6 @@
     "react-dom": "^18.2.0"
   },
   "dependencies": {
-    "@testing-library/react": "^14.2.2",
     "js-cookie": "^3.0.5",
     "nanoid": "^5.0.6",
     "react": "^18.2.0",
@@ -46,6 +45,7 @@
     "@rollup/plugin-typescript": "^11.1.5",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/npm": "^11.0.2",
+    "@testing-library/react": "^16.0.0",
     "@types/js-cookie": "^3.0.5",
     "@types/react": "^18.2.71",
     "@types/rollup-plugin-peer-deps-external": "^2.2.5",
