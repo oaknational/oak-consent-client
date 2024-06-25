@@ -91,6 +91,13 @@ describe("OakConsentClient", () => {
   });
 
   describe("State Management and Listeners", () => {
+    it("should notify listeners when the listener is registered", async () => {
+      const client = new OakConsentClient(testProps);
+      await client.isReady;
+      const listenerMock = jest.fn();
+      client.onStateChange(listenerMock);
+      expect(listenerMock).toHaveBeenCalledTimes(1);
+    });
     it("should notify listeners when the state changes", async () => {
       const client = new OakConsentClient(testProps);
       await client.isReady;
@@ -99,6 +106,8 @@ describe("OakConsentClient", () => {
       const granted: ConsentState = "granted";
 
       client.onStateChange(listenerMock);
+      listenerMock.mockClear();
+
       client["setState"]({
         policyConsents: [
           ...client

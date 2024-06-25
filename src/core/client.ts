@@ -116,6 +116,7 @@ export class OakConsentClient {
   };
 
   public onStateChange = (listener: Listener<State>): (() => void) => {
+    listener(this.state);
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
@@ -156,7 +157,6 @@ export class OakConsentClient {
   };
 
   private getConsentsFromCookies = () => {
-    // return [];
     try {
       const val = getCookie();
       const json = val ? JSON.parse(val) : null;
