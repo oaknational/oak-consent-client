@@ -17,6 +17,7 @@
     "format:check": "prettier '**/*.{j,t}{s,sx}' --check",
     "lint": "eslint src/**/*",
     "lint:precommit": "eslint src/**/* --fix",
+    "prepublishOnly": "./scripts/prepublish.sh",
     "test": "jest --watch --collectCoverage=false",
     "test:ci": "jest"
   },
