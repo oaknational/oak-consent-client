@@ -111,7 +111,7 @@ describe("OakConsentClient", () => {
 
     describe("on subsequent visits", () => {
       it("should not log the user's visit", async () => {
-        getCookieMock.mockReturnValue(
+        getCookieMock.mockReturnValueOnce(
           JSON.stringify({
             user: "persistedTestUserId",
             app: "testApp",
@@ -207,9 +207,8 @@ describe("OakConsentClient", () => {
           consentState: "granted",
         },
       ]);
-
       const state = client.getState();
-      expect(networkClient.logConsents).toHaveBeenCalledWith([
+      const updatedConsents = [
         {
           policyId: "1",
           policySlug: "privacy",
@@ -226,9 +225,45 @@ describe("OakConsentClient", () => {
           userId: client.userId,
           appSlug: "testApp",
         },
-      ]);
+      ];
+      expect(networkClient.logConsents).toHaveBeenCalledWith(updatedConsents);
       expect(state.policyConsents?.[0]?.consentState).toBe("granted");
+      expect(setCookieMock).toHaveBeenLastCalledWith(
+        JSON.stringify({
+          user: "testUserId",
+          app: "testApp",
+          policies: updatedConsents.map((c) => ({
+            id: c.policyId,
+            v: c.policyVersion,
+            slug: c.policySlug,
+            state: c.consentState,
+          })),
+        }),
+      );
     });
+  });
+
+  it("should call onError when logging consent if polices are missing", async () => {
+    const onError = jest.fn();
+    const client = new OakConsentClient(
+      {
+        ...testProps,
+        onError,
+      },
+      networkClient,
+    );
+    await client.isReady;
+    client.logConsents([
+      {
+        policyId: "2",
+        consentState: "granted",
+      },
+    ]);
+
+    expect(onError).toHaveBeenCalledWith(
+      new Error("Consents to all policies must be logged."),
+    );
+    expect(networkClient.logConsents).not.toHaveBeenCalled();
   });
 
   describe("should save consents to cookiesteraction", () => {
@@ -245,8 +280,7 @@ describe("OakConsentClient", () => {
           consentState: "granted",
         },
       ]);
-      expect(setCookieMock).toHaveBeenCalledTimes(1);
-      expect(setCookieMock).toHaveBeenCalledWith(
+      expect(setCookieMock).toHaveBeenLastCalledWith(
         JSON.stringify({
           user: client.userId,
           app: "testApp",
