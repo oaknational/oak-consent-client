@@ -7,6 +7,9 @@ type NetworkClientConfig = {
   consentLogUrl: string;
 };
 
+/**
+ * Fetches policies and logs consents to oak-consent-api
+ */
 export class NetworkClient {
   constructor(private config: NetworkClientConfig) {}
 
@@ -28,6 +31,9 @@ export class NetworkClient {
     return policies;
   }
 
+  /**
+   * Logs a user's policy consents to oak-consent-api
+   */
   async logConsents(logs: ConsentLog[]) {
     await fetch(this.config.consentLogUrl, {
       method: "POST",

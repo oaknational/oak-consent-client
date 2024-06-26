@@ -1,9 +1,9 @@
 import { jest, beforeEach, describe, expect, it } from "@jest/globals";
-import fetchMock from "jest-fetch-mock";
 
 import { ConsentState, Policy, State } from "../types";
 
 import { OakConsentClient } from "./client";
+import { NetworkClient } from "./network";
 
 const setCookieMock = jest.fn();
 const getCookieMock = jest.fn();
@@ -14,7 +14,7 @@ jest.mock("./cookies", () => ({
 jest.mock("nanoid", () => ({
   nanoid: jest.fn(() => "testUserId"),
 }));
-fetchMock.enableMocks();
+jest.mock("./network");
 
 const onError = (error: unknown) => {
   throw error;
@@ -58,20 +58,18 @@ const mockPolicies: Policy[] = [
   },
 ];
 
-beforeEach(() => {
-  (fetch as typeof fetchMock).resetMocks();
-  (fetch as typeof fetchMock).mockResponseOnce(() =>
-    Promise.resolve({
-      body: JSON.stringify(mockPolicies),
-    }),
-  );
-  jest.clearAllMocks();
-});
-
 describe("OakConsentClient", () => {
+  let networkClient: NetworkClient;
+
+  beforeEach(() => {
+    networkClient = new NetworkClient(testProps);
+    jest.spyOn(networkClient, "fetchPolicies").mockResolvedValue(mockPolicies);
+    jest.clearAllMocks();
+  });
+
   describe("Initialization", () => {
     it("should set initial properties from the constructor", () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
 
       expect(client.userId).toBe("testUserId");
       expect(client.appSlug).toBe("testApp");
@@ -79,10 +77,9 @@ describe("OakConsentClient", () => {
     });
 
     it("should fetch policies and update state on init", async () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
 
-      expect(fetch).toHaveBeenCalledTimes(1);
       expect(client["policies"]).toEqual(mockPolicies);
       expect(client.getState().policyConsents).toHaveLength(2);
     });
@@ -90,14 +87,14 @@ describe("OakConsentClient", () => {
 
   describe("State Management and Listeners", () => {
     it("should notify listeners when the listener is registered", async () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
       const listenerMock = jest.fn();
       client.onStateChange(listenerMock);
       expect(listenerMock).toHaveBeenCalledTimes(1);
     });
     it("should notify listeners when the state changes", async () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
       const listenerMock = jest.fn();
 
@@ -118,7 +115,7 @@ describe("OakConsentClient", () => {
       expect(listenerMock).toHaveBeenCalledTimes(1);
     });
     it("computed properties should be derived", () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
 
       const state: State = {
         policyConsents: [
@@ -160,9 +157,8 @@ describe("OakConsentClient", () => {
 
   describe("Managing Consents", () => {
     it("should log consents and update state accordingly", async () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
-      (fetch as typeof fetchMock).mockResponseOnce(() => Promise.resolve({}));
       await client.logConsents([
         { policyId: "1", consentState: "granted" },
         {
@@ -172,38 +168,31 @@ describe("OakConsentClient", () => {
       ]);
 
       const state = client.getState();
-      expect(fetch).toHaveBeenNthCalledWith(
-        2,
-        "http://example.com/consentLogs",
+      expect(networkClient.logConsents).toHaveBeenCalledWith([
         {
-          method: "POST",
-          body: JSON.stringify([
-            {
-              policyId: "1",
-              policySlug: "privacy",
-              policyVersion: 1,
-              consentState: "granted",
-              userId: client.userId,
-              appSlug: "testApp",
-            },
-            {
-              policyId: "2",
-              policySlug: "analytics",
-              policyVersion: 1,
-              consentState: "granted",
-              userId: client.userId,
-              appSlug: "testApp",
-            },
-          ]),
+          policyId: "1",
+          policySlug: "privacy",
+          policyVersion: 1,
+          consentState: "granted",
+          userId: client.userId,
+          appSlug: "testApp",
         },
-      );
+        {
+          policyId: "2",
+          policySlug: "analytics",
+          policyVersion: 1,
+          consentState: "granted",
+          userId: client.userId,
+          appSlug: "testApp",
+        },
+      ]);
       expect(state.policyConsents?.[0]?.consentState).toBe("granted");
     });
   });
 
   describe("should save consents to cookiesteraction", () => {
     it("should save consents to cookies", async () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
       await client.logConsents([
         {
@@ -250,7 +239,7 @@ describe("OakConsentClient", () => {
         }),
       );
 
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
 
       const state = client.getState();
@@ -272,7 +261,7 @@ describe("OakConsentClient", () => {
         }),
       );
 
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
 
       expect(client.userId).toBe("persistedTestUserId");
     });
@@ -280,9 +269,8 @@ describe("OakConsentClient", () => {
 
   describe("Policy versioning", () => {
     it("consentedToPreviousVersion: false", async () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
-      (fetch as typeof fetchMock).mockResponseOnce(() => Promise.resolve({}));
       await client.logConsents([
         {
           policyId: "1",
@@ -324,11 +312,9 @@ describe("OakConsentClient", () => {
           version: 2,
         },
       ];
-      (fetch as typeof fetchMock).mockResponseOnce(() =>
-        Promise.resolve({
-          body: JSON.stringify(updatedPolicies),
-        }),
-      );
+      jest
+        .spyOn(networkClient, "fetchPolicies")
+        .mockResolvedValue(updatedPolicies);
 
       await client.init();
       const state = client.getState();
@@ -365,9 +351,8 @@ describe("OakConsentClient", () => {
       ]);
     });
     it("consentedToPreviousVersion: true", async () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       await client.isReady;
-      (fetch as typeof fetchMock).mockResponseOnce(() => Promise.resolve({}));
       await client.logConsents([
         {
           policyId: "1",
@@ -409,11 +394,9 @@ describe("OakConsentClient", () => {
           ],
         },
       ];
-      (fetch as typeof fetchMock).mockResponseOnce(() =>
-        Promise.resolve({
-          body: JSON.stringify(updatedPolicies),
-        }),
-      );
+      jest
+        .spyOn(networkClient, "fetchPolicies")
+        .mockResolvedValue(updatedPolicies);
       await client.init();
       const state = client.getState();
       expect(state.policyConsents).toEqual([
@@ -452,7 +435,7 @@ describe("OakConsentClient", () => {
 
   describe("state", () => {
     it("state should not be updated if policies or consents are unchanged", () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       const state = client.getState();
       client["setState"]({
         ...state,
@@ -461,7 +444,7 @@ describe("OakConsentClient", () => {
       expect(client.getState()).toBe(state);
     });
     it("state values should not be updated if policies or consents are unchanged", () => {
-      const client = new OakConsentClient(testProps);
+      const client = new OakConsentClient(testProps, networkClient);
       const state = client.getState();
       client["setState"]({
         ...state,
