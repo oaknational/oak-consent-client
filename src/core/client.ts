@@ -1,4 +1,3 @@
-import { z } from "zod";
 import { nanoid } from "nanoid";
 
 import {
@@ -11,10 +10,10 @@ import {
   PolicyConsent,
   State,
   cookieSchema,
-  policySchema,
 } from "../types";
 
 import { getCookie, setCookie } from "./cookies";
+import { NetworkClient } from "./network";
 
 const logger = console;
 
@@ -40,28 +39,27 @@ export class OakConsentClient {
   public userId: string;
   public isReady: Promise<void>;
   private onError: OnError;
-  private policiesUrl: string;
-  private consentLogUrl: string;
   private policies: Policy[] | null = null;
   private consentLogs: ConsentLog[] = [];
   private state: State;
   private listeners: Listener<State>[] = [];
 
-  constructor({
-    appSlug,
-    policiesUrl,
-    consentLogUrl,
-    onError,
-  }: {
-    appSlug: string;
-    policiesUrl: string;
-    consentLogUrl: string;
-    onError?: OnError;
-  }) {
+  constructor(
+    {
+      appSlug,
+      policiesUrl,
+      consentLogUrl,
+      onError,
+    }: {
+      appSlug: string;
+      policiesUrl: string;
+      consentLogUrl: string;
+      onError?: OnError;
+    },
+    private networkClient = new NetworkClient({ policiesUrl, consentLogUrl }),
+  ) {
     this.onError = onError || logger.error;
     this.appSlug = appSlug;
-    this.policiesUrl = policiesUrl;
-    this.consentLogUrl = consentLogUrl;
     const [userId, consentLogs] = this.getUserStateFromCookies();
     this.userId = userId ?? this.generateUserId();
     this.consentLogs = consentLogs;
@@ -212,10 +210,7 @@ export class OakConsentClient {
         policyConsents,
       });
 
-      await fetch(this.consentLogUrl, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      await this.networkClient.logConsents(payload);
     } catch (error) {
       this.onError(error);
     }
@@ -267,17 +262,7 @@ export class OakConsentClient {
 
   private fetchPolicies = async () => {
     try {
-      const response = await fetch(
-        `${this.policiesUrl}?appSlug=${this.appSlug}`,
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch policies");
-      }
-
-      const data = await response.json();
-      const policies = z.array(policySchema).parse(data);
-
-      return policies;
+      return await this.networkClient.fetchPolicies(this.appSlug);
     } catch (error) {
       this.onError(error);
       return [];

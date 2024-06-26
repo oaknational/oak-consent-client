@@ -75,8 +75,6 @@ describe("OakConsentClient", () => {
 
       expect(client.userId).toBe("testUserId");
       expect(client.appSlug).toBe("testApp");
-      expect(client["policiesUrl"]).toBe("http://example.com/policies");
-      expect(client["consentLogUrl"]).toBe("http://example.com/consentLogs");
       expect(client["onError"]).toBe(onError);
     });
 
