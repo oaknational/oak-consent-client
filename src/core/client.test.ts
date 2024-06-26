@@ -84,6 +84,46 @@ describe("OakConsentClient", () => {
       expect(client["policies"]).toEqual(mockPolicies);
       expect(client.getState().policyConsents).toHaveLength(2);
     });
+
+    it("should persist the generated userId in a cookie", () => {
+      new OakConsentClient(testProps, networkClient);
+
+      expect(setCookieMock).toHaveBeenCalledTimes(1);
+      expect(setCookieMock).toHaveBeenCalledWith(
+        JSON.stringify({
+          user: "testUserId",
+          app: "testApp",
+          policies: [],
+        }),
+      );
+    });
+
+    describe("on the user's first visit", () => {
+      it("should log the user's visit", async () => {
+        new OakConsentClient(testProps, networkClient);
+
+        expect(networkClient.logUser).toHaveBeenCalledWith(
+          "testUserId",
+          "testApp",
+        );
+      });
+    });
+
+    describe("on subsequent visits", () => {
+      it("should not log the user's visit", async () => {
+        getCookieMock.mockReturnValue(
+          JSON.stringify({
+            user: "persistedTestUserId",
+            app: "testApp",
+            policies: [],
+          }),
+        );
+
+        new OakConsentClient(testProps, networkClient);
+
+        expect(networkClient.logUser).not.toHaveBeenCalled();
+      });
+    });
   });
 
   describe("State Management and Listeners", () => {

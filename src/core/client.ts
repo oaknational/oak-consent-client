@@ -66,8 +66,8 @@ export class OakConsentClient {
   ) {
     this.onError = onError || logger.error;
     this.appSlug = appSlug;
-    const [userId, consentLogs] = this.getUserStateFromCookies();
-    this.userId = userId ?? this.generateUserId();
+    const [userIdFromCookie, consentLogs] = this.getUserStateFromCookies();
+    this.userId = userIdFromCookie ?? this.generateUserId();
     this.consentLogs = consentLogs;
     this.state = {
       policyConsents: [],
@@ -76,6 +76,12 @@ export class OakConsentClient {
     if (typeof window !== "undefined") {
       window.oakConsent = this;
     }
+
+    // If the user does not have a cookie set then they are new
+    if (!userIdFromCookie) {
+      this.logFirstVisitByUser();
+    }
+
     this.isReady = this.init();
   }
 
@@ -272,6 +278,18 @@ export class OakConsentClient {
     } catch (error) {
       this.onError(error);
       return [];
+    }
+  };
+
+  private logFirstVisitByUser = async () => {
+    // Ensure that the user is stored in the cookie
+    // so that we don't attempt to log the user again
+    this.setConsentsInCookies(this.consentLogs);
+
+    try {
+      await this.networkClient.logUser(this.userId, this.appSlug);
+    } catch (error) {
+      this.onError(error);
     }
   };
 }
