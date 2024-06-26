@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 
 import {
+  ConsentClient,
   ConsentLog,
   ConsentStateWithPending,
   CookieData,
@@ -34,7 +35,7 @@ function policyConsentsHaveChanged(
   );
 }
 
-export class OakConsentClient {
+export class OakConsentClient implements ConsentClient {
   public appSlug: string;
   public userId: string;
   public isReady: Promise<void>;
