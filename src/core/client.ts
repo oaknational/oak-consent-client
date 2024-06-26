@@ -62,9 +62,9 @@ export class OakConsentClient {
     this.appSlug = appSlug;
     this.policiesUrl = policiesUrl;
     this.consentLogUrl = consentLogUrl;
-    const userId = this.getUserId();
-    this.userId = userId;
-    this.consentLogs = this.getConsentsFromCookies();
+    const [userId, consentLogs] = this.getUserStateFromCookies();
+    this.userId = userId ?? this.generateUserId();
+    this.consentLogs = consentLogs;
     this.state = {
       policyConsents: [],
       requiresInteraction: false,
@@ -127,10 +127,6 @@ export class OakConsentClient {
     return policyConsents.some((pc) => pc.consentState === "pending");
   };
 
-  private getUserId = () => {
-    return this.consentLogs[0]?.userId || this.generateUserId();
-  };
-
   private generateUserId = () => {
     return nanoid();
   };
@@ -156,11 +152,14 @@ export class OakConsentClient {
     }
   };
 
-  private getConsentsFromCookies = () => {
+  private getUserStateFromCookies = (): [
+    userId: string | null,
+    consentLog: ConsentLog[],
+  ] => {
     try {
       const val = getCookie();
       const json = val ? JSON.parse(val) : null;
-      if (!json) return [];
+      if (!json) return [null, []];
       const parsed = cookieSchema.parse(json);
       const consents = parsed.policies.map((policy) => ({
         policyId: policy.id,
@@ -171,10 +170,10 @@ export class OakConsentClient {
         appSlug: parsed.app,
       }));
 
-      return consents;
+      return [parsed.user, consents];
     } catch (error) {
       this.onError(error);
-      return [];
+      return [null, []];
     }
   };
 

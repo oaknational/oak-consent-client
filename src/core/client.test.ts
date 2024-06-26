@@ -264,6 +264,20 @@ describe("OakConsentClient", () => {
         ]),
       );
     });
+
+    it("should retrieve `userId` from cookies", async () => {
+      getCookieMock.mockReturnValue(
+        JSON.stringify({
+          user: "persistedTestUserId",
+          app: "testApp",
+          policies: [],
+        }),
+      );
+
+      const client = new OakConsentClient(testProps);
+
+      expect(client.userId).toBe("persistedTestUserId");
+    });
   });
 
   describe("Policy versioning", () => {
