@@ -24,6 +24,7 @@ const testProps = {
   appSlug: "testApp",
   policiesUrl: "http://example.com/policies",
   consentLogUrl: "http://example.com/consentLogs",
+  userLogUrl: "http://example.com/userLogs",
   onError,
 };
 const mockPolicies: Policy[] = [

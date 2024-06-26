@@ -27,6 +27,7 @@ describe(NetworkClient, () => {
   const subject = new NetworkClient({
     policiesUrl: "https://example.com/policies",
     consentLogUrl: "https://example.com/consent-log",
+    userLogUrl: "https://example.com/user-log",
   });
 
   describe("fetchPolicies", () => {
@@ -71,7 +72,7 @@ describe(NetworkClient, () => {
     ];
 
     it("makes a POST request to log consents", async () => {
-      fetchMock.mockResponseOnce(() => Promise.resolve({}));
+      fetchMock.mockResponseOnce(() => Promise.resolve(""));
 
       await subject.logConsents(mockConsentLog);
 
@@ -83,6 +84,31 @@ describe(NetworkClient, () => {
           body: JSON.stringify(mockConsentLog),
         },
       );
+    });
+  });
+
+  describe("logUser", () => {
+    it("makes a POST request to log a user's first visit", async () => {
+      fetchMock.mockResponseOnce(() =>
+        Promise.resolve(
+          JSON.stringify({
+            userId: "testUser",
+            appSlug: "testApp",
+            createdAt: new Date().toISOString(),
+          }),
+        ),
+      );
+
+      await subject.logUser("testUser", "testApp");
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(fetchMock).toHaveBeenCalledWith("https://example.com/user-log", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ userId: "testUser", appSlug: "testApp" }),
+      });
     });
   });
 });

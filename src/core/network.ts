@@ -5,6 +5,7 @@ import { ConsentLog, Policy, policySchema } from "@/types";
 type NetworkClientConfig = {
   policiesUrl: string;
   consentLogUrl: string;
+  userLogUrl: string;
 };
 
 /**
@@ -38,6 +39,19 @@ export class NetworkClient {
     await fetch(this.config.consentLogUrl, {
       method: "POST",
       body: JSON.stringify(logs),
+    });
+  }
+
+  /**
+   * Logs the user's visit to oak-consent-api
+   */
+  async logUser(userId: string, appSlug: string) {
+    await fetch(this.config.userLogUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId, appSlug }),
     });
   }
 }

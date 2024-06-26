@@ -49,14 +49,20 @@ export class OakConsentClient {
       appSlug,
       policiesUrl,
       consentLogUrl,
+      userLogUrl,
       onError,
     }: {
       appSlug: string;
       policiesUrl: string;
       consentLogUrl: string;
+      userLogUrl: string;
       onError?: OnError;
     },
-    private networkClient = new NetworkClient({ policiesUrl, consentLogUrl }),
+    private networkClient = new NetworkClient({
+      policiesUrl,
+      consentLogUrl,
+      userLogUrl,
+    }),
   ) {
     this.onError = onError || logger.error;
     this.appSlug = appSlug;
