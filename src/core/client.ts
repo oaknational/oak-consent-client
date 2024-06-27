@@ -283,6 +283,11 @@ export class OakConsentClient implements ConsentClient {
   };
 
   private logFirstVisitByUser = async () => {
+    // Don't attempt to log the visit in a non-browser environment
+    if (typeof window === "undefined") {
+      return;
+    }
+
     // Ensure that the user is stored in the cookie
     // so that we don't attempt to log the user again
     this.setConsentsInCookies(this.consentLogs);
