@@ -4,13 +4,9 @@ import { ConsentState, Policy, State } from "../types";
 
 import { OakConsentClient } from "./client";
 import { NetworkClient } from "./network";
+import { getCookie, setCookie } from "./cookies";
 
-const setCookieMock = jest.fn();
-const getCookieMock = jest.fn();
-jest.mock("./cookies", () => ({
-  setCookie: (...args: []) => setCookieMock(...args),
-  getCookie: (...args: []) => getCookieMock(...args),
-}));
+jest.mock("./cookies");
 jest.mock("nanoid", () => ({
   nanoid: jest.fn(() => "testUserId"),
 }));
@@ -88,8 +84,8 @@ describe("OakConsentClient", () => {
     it("should persist the generated userId in a cookie", () => {
       new OakConsentClient(testProps, networkClient);
 
-      expect(setCookieMock).toHaveBeenCalledTimes(1);
-      expect(setCookieMock).toHaveBeenCalledWith(
+      expect(setCookie).toHaveBeenCalledTimes(1);
+      expect(setCookie).toHaveBeenCalledWith(
         JSON.stringify({
           user: "testUserId",
           app: "testApp",
@@ -111,7 +107,7 @@ describe("OakConsentClient", () => {
 
     describe("on subsequent visits", () => {
       it("should not log the user's visit", async () => {
-        getCookieMock.mockReturnValueOnce(
+        (getCookie as jest.Mock).mockReturnValueOnce(
           JSON.stringify({
             user: "persistedTestUserId",
             app: "testApp",
@@ -228,7 +224,7 @@ describe("OakConsentClient", () => {
       ];
       expect(networkClient.logConsents).toHaveBeenCalledWith(updatedConsents);
       expect(state.policyConsents?.[0]?.consentState).toBe("granted");
-      expect(setCookieMock).toHaveBeenLastCalledWith(
+      expect(setCookie).toHaveBeenLastCalledWith(
         JSON.stringify({
           user: "testUserId",
           app: "testApp",
@@ -280,7 +276,7 @@ describe("OakConsentClient", () => {
           consentState: "granted",
         },
       ]);
-      expect(setCookieMock).toHaveBeenLastCalledWith(
+      expect(setCookie).toHaveBeenLastCalledWith(
         JSON.stringify({
           user: client.userId,
           app: "testApp",
@@ -303,7 +299,7 @@ describe("OakConsentClient", () => {
     });
 
     it("should retrieve consents from cookies", async () => {
-      getCookieMock.mockReturnValue(
+      (getCookie as jest.Mock).mockReturnValue(
         JSON.stringify({
           user: "testUserId",
           app: "testApp",
@@ -328,7 +324,7 @@ describe("OakConsentClient", () => {
     });
 
     it("should retrieve `userId` from cookies", async () => {
-      getCookieMock.mockReturnValue(
+      (getCookie as jest.Mock).mockReturnValue(
         JSON.stringify({
           user: "persistedTestUserId",
           app: "testApp",
