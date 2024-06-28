@@ -73,16 +73,25 @@ describe("OakConsentClient", () => {
       expect(client["onError"]).toBe(onError);
     });
 
+    it("only allows the client to initialize once", async () => {
+      const client = new OakConsentClient(testProps, networkClient);
+      await client.init();
+      await client.init();
+
+      expect(networkClient.fetchPolicies).toHaveBeenCalledTimes(1);
+    });
+
     it("should fetch policies and update state on init", async () => {
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
+      await client.init();
 
       expect(client["policies"]).toEqual(mockPolicies);
       expect(client.getState().policyConsents).toHaveLength(2);
     });
 
-    it("should persist the generated userId in a cookie", () => {
-      new OakConsentClient(testProps, networkClient);
+    it("should persist the generated userId in a cookie", async () => {
+      const client = new OakConsentClient(testProps, networkClient);
+      await client.init();
 
       expect(setCookie).toHaveBeenCalledTimes(1);
       expect(setCookie).toHaveBeenCalledWith(
@@ -96,7 +105,8 @@ describe("OakConsentClient", () => {
 
     describe("on the user's first visit", () => {
       it("should log the user's visit", async () => {
-        new OakConsentClient(testProps, networkClient);
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
 
         expect(networkClient.logUser).toHaveBeenCalledWith(
           "testUserId",
@@ -115,7 +125,8 @@ describe("OakConsentClient", () => {
           }),
         );
 
-        new OakConsentClient(testProps, networkClient);
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
 
         expect(networkClient.logUser).not.toHaveBeenCalled();
       });
@@ -125,14 +136,14 @@ describe("OakConsentClient", () => {
   describe("State Management and Listeners", () => {
     it("should notify listeners when the listener is registered", async () => {
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
+      await client.init();
       const listenerMock = jest.fn();
       client.onStateChange(listenerMock);
       expect(listenerMock).toHaveBeenCalledTimes(1);
     });
     it("should notify listeners when the state changes", async () => {
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
+      await client.init();
       const listenerMock = jest.fn();
 
       const granted: ConsentState = "granted";
@@ -195,7 +206,7 @@ describe("OakConsentClient", () => {
   describe("Managing Consents", () => {
     it("should log consents and update state accordingly", async () => {
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
+      await client.init();
       await client.logConsents([
         { policyId: "1", consentState: "granted" },
         {
@@ -248,7 +259,7 @@ describe("OakConsentClient", () => {
       },
       networkClient,
     );
-    await client.isReady;
+    await client.init();
     client.logConsents([
       {
         policyId: "2",
@@ -265,7 +276,7 @@ describe("OakConsentClient", () => {
   describe("should save consents to cookiesteraction", () => {
     it("should save consents to cookies", async () => {
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
+      await client.init();
       await client.logConsents([
         {
           policyId: "1",
@@ -311,7 +322,7 @@ describe("OakConsentClient", () => {
       );
 
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
+      await client.init();
 
       const state = client.getState();
       const consents = state.policyConsents;
@@ -340,18 +351,18 @@ describe("OakConsentClient", () => {
 
   describe("Policy versioning", () => {
     it("consentedToPreviousVersion: false", async () => {
+      (getCookie as jest.Mock).mockReturnValue(
+        JSON.stringify({
+          user: "testUserId",
+          app: "testApp",
+          policies: [
+            { id: "1", v: 1, slug: "privacy", state: "granted" },
+            { id: "2", v: 1, slug: "analytics", state: "denied" },
+          ],
+        }),
+      );
+
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
-      await client.logConsents([
-        {
-          policyId: "1",
-          consentState: "granted",
-        },
-        {
-          policyId: "2",
-          consentState: "denied",
-        },
-      ]);
       const updatedPolicies: Policy[] = [
         {
           appSlug: "testApp",
@@ -422,18 +433,18 @@ describe("OakConsentClient", () => {
       ]);
     });
     it("consentedToPreviousVersion: true", async () => {
+      (getCookie as jest.Mock).mockReturnValue(
+        JSON.stringify({
+          user: "testUserId",
+          app: "testApp",
+          policies: [
+            { id: "1", v: 1, slug: "privacy", state: "granted" },
+            { id: "2", v: 1, slug: "analytics", state: "granted" },
+          ],
+        }),
+      );
+
       const client = new OakConsentClient(testProps, networkClient);
-      await client.isReady;
-      await client.logConsents([
-        {
-          policyId: "1",
-          consentState: "granted",
-        },
-        {
-          policyId: "2",
-          consentState: "granted",
-        },
-      ]);
       const updatedPolicies: Policy[] = [
         {
           appSlug: "testApp",

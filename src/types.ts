@@ -64,7 +64,6 @@ export type GetConsent = (slug: string) => ConsentStateWithPending;
 export interface ConsentClient {
   appSlug: string;
   userId: string;
-  isReady: Promise<void>;
   init(): Promise<void>;
   getState(): State;
   onStateChange: (listener: Listener<State>) => () => void;

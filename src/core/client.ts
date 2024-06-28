@@ -38,12 +38,18 @@ function policyConsentsHaveChanged(
 export class OakConsentClient implements ConsentClient {
   public appSlug: string;
   public userId: string;
-  public isReady: Promise<void>;
   private onError: OnError;
   private policies: Policy[] | null = null;
   private consentLogs: ConsentLog[] = [];
   private state: State;
   private listeners: Listener<State>[] = [];
+  /**
+   * Indicates when the first visit by the user has been logged
+   *
+   * Either there is an existing cookie with the user's ID or the user has been logged by this instance
+   */
+  private hasLoggedFirstVisit = false;
+  private isInitialized = false;
 
   constructor(
     {
@@ -68,6 +74,7 @@ export class OakConsentClient implements ConsentClient {
     this.onError = onError || logger.error;
     this.appSlug = appSlug;
     const [userIdFromCookie, consentLogs] = this.getUserStateFromCookies();
+    this.hasLoggedFirstVisit = !!userIdFromCookie;
     this.userId = userIdFromCookie ?? this.generateUserId();
     this.consentLogs = consentLogs;
     this.state = {
@@ -77,16 +84,15 @@ export class OakConsentClient implements ConsentClient {
     if (typeof window !== "undefined") {
       window.oakConsent = this;
     }
-
-    // If the user does not have a cookie set then they are new
-    if (!userIdFromCookie) {
-      this.logFirstVisitByUser();
-    }
-
-    this.isReady = this.init();
   }
 
   public async init() {
+    // Only initialize once
+    if (this.isInitialized) {
+      return;
+    }
+    this.isInitialized = true;
+    this.logFirstVisitByUser();
     const policies = await this.fetchPolicies();
     this.policies = policies;
     const policyConsents = this.getPolicyConsents();
@@ -282,15 +288,19 @@ export class OakConsentClient implements ConsentClient {
     }
   };
 
+  /**
+   * Logs the user's when they are asked for consent the first time
+   */
   private logFirstVisitByUser = async () => {
-    // Don't attempt to log the visit in a non-browser environment
-    if (typeof window === "undefined") {
+    // Don't log the user if they have already visited
+    if (this.hasLoggedFirstVisit) {
       return;
     }
 
     // Ensure that the user is stored in the cookie
     // so that we don't attempt to log the user again
     this.setConsentsInCookies(this.consentLogs);
+    this.hasLoggedFirstVisit = true;
 
     try {
       await this.networkClient.logUser(this.userId, this.appSlug);

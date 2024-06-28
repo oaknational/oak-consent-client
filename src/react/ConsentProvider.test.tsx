@@ -1,6 +1,6 @@
 import { jest, expect, describe, it, beforeEach } from "@jest/globals";
 import { ReactNode } from "react";
-import { act, renderHook } from "@testing-library/react";
+import { act, render, renderHook } from "@testing-library/react";
 
 import { OakConsentProvider } from "./ConsentProvider"; // Update with the actual path
 import { useOakConsent } from "./useOakConsent";
@@ -32,13 +32,23 @@ describe("OakConsentProvider and useOakConsent", () => {
     jest.clearAllMocks();
   });
 
-  const wrapper = ({ children }: { children: ReactNode }) => (
+  const Wrapper = ({ children }: { children?: ReactNode }) => (
     <OakConsentProvider client={client}>{children}</OakConsentProvider>
   );
 
+  it("initialises the client on mount", async () => {
+    const initSpy = jest.spyOn(client, "init");
+    const result = render(<Wrapper />);
+    result.rerender(<Wrapper />);
+
+    expect(initSpy).toHaveBeenCalledTimes(1);
+  });
+
   describe("state", () => {
     it("should provide the correct state", () => {
-      const { result } = renderHook(() => useOakConsent(), { wrapper });
+      const { result } = renderHook(() => useOakConsent(), {
+        wrapper: Wrapper,
+      });
       expect(result.current.state).toEqual(mockClientState);
     });
     it("should update the state when the client updates", () => {
@@ -48,7 +58,9 @@ describe("OakConsentProvider and useOakConsent", () => {
         return () => {};
       });
 
-      const { result } = renderHook(() => useOakConsent(), { wrapper });
+      const { result } = renderHook(() => useOakConsent(), {
+        wrapper: Wrapper,
+      });
 
       const newState: State = {
         ...mockClientState,
@@ -71,7 +83,9 @@ describe("OakConsentProvider and useOakConsent", () => {
   describe("getConsent", () => {
     it("should return the correct consent state", async () => {
       jest.spyOn(client, "getConsent").mockReturnValueOnce("pending");
-      const { result } = renderHook(() => useOakConsent(), { wrapper });
+      const { result } = renderHook(() => useOakConsent(), {
+        wrapper: Wrapper,
+      });
 
       expect(result.current.getConsent("analytics")).toBe("pending");
       expect(client.getConsent).toHaveBeenCalledWith("analytics");

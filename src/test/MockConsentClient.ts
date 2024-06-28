@@ -8,7 +8,6 @@ import type { ConsentClient } from "@/types";
 export class MockConsentClient implements ConsentClient {
   appSlug = "testApp";
   userId = "testUserId";
-  isReady = Promise.resolve();
   init() {
     return Promise.resolve();
   }
