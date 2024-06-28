@@ -60,3 +60,15 @@ export type LogConsents = (
 export type RequiresInteraction = () => boolean;
 export type OnError = (error: unknown) => void;
 export type GetConsent = (slug: string) => ConsentStateWithPending;
+
+export interface ConsentClient {
+  appSlug: string;
+  userId: string;
+  init(): Promise<void>;
+  getState(): State;
+  onStateChange: (listener: Listener<State>) => () => void;
+  logConsents: (
+    consents: { policyId: string; consentState: "granted" | "denied" }[],
+  ) => Promise<void>;
+  getConsent: (slug: string) => ConsentStateWithPending;
+}
