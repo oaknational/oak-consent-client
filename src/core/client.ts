@@ -1,7 +1,7 @@
-import { z } from "zod";
 import { nanoid } from "nanoid";
 
 import {
+  ConsentClient,
   ConsentLog,
   ConsentStateWithPending,
   CookieData,
@@ -11,10 +11,10 @@ import {
   PolicyConsent,
   State,
   cookieSchema,
-  policySchema,
 } from "../types";
 
 import { getCookie, setCookie } from "./cookies";
+import { NetworkClient } from "./network";
 
 const logger = console;
 
@@ -35,35 +35,47 @@ function policyConsentsHaveChanged(
   );
 }
 
-export class OakConsentClient {
+export class OakConsentClient implements ConsentClient {
   public appSlug: string;
   public userId: string;
-  public isReady: Promise<void>;
   private onError: OnError;
-  private policiesUrl: string;
-  private consentLogUrl: string;
   private policies: Policy[] | null = null;
   private consentLogs: ConsentLog[] = [];
   private state: State;
   private listeners: Listener<State>[] = [];
+  /**
+   * Indicates when the first visit by the user has been logged
+   *
+   * Either there is an existing cookie with the user's ID or the user has been logged by this instance
+   */
+  private hasLoggedFirstVisit = false;
+  private isInitialized = false;
 
-  constructor({
-    appSlug,
-    policiesUrl,
-    consentLogUrl,
-    onError,
-  }: {
-    appSlug: string;
-    policiesUrl: string;
-    consentLogUrl: string;
-    onError?: OnError;
-  }) {
+  constructor(
+    {
+      appSlug,
+      policiesUrl,
+      consentLogUrl,
+      userLogUrl,
+      onError,
+    }: {
+      appSlug: string;
+      policiesUrl: string;
+      consentLogUrl: string;
+      userLogUrl: string;
+      onError?: OnError;
+    },
+    private networkClient = new NetworkClient({
+      policiesUrl,
+      consentLogUrl,
+      userLogUrl,
+    }),
+  ) {
     this.onError = onError || logger.error;
     this.appSlug = appSlug;
-    this.policiesUrl = policiesUrl;
-    this.consentLogUrl = consentLogUrl;
-    const [userId, consentLogs] = this.getUserStateFromCookies();
-    this.userId = userId ?? this.generateUserId();
+    const [userIdFromCookie, consentLogs] = this.getUserStateFromCookies();
+    this.hasLoggedFirstVisit = !!userIdFromCookie;
+    this.userId = userIdFromCookie ?? this.generateUserId();
     this.consentLogs = consentLogs;
     this.state = {
       policyConsents: [],
@@ -72,10 +84,15 @@ export class OakConsentClient {
     if (typeof window !== "undefined") {
       window.oakConsent = this;
     }
-    this.isReady = this.init();
   }
 
   public async init() {
+    // Only initialize once
+    if (this.isInitialized) {
+      return;
+    }
+    this.isInitialized = true;
+    this.logFirstVisitByUser();
     const policies = await this.fetchPolicies();
     this.policies = policies;
     const policyConsents = this.getPolicyConsents();
@@ -212,10 +229,7 @@ export class OakConsentClient {
         policyConsents,
       });
 
-      await fetch(this.consentLogUrl, {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      await this.networkClient.logConsents(payload);
     } catch (error) {
       this.onError(error);
     }
@@ -267,20 +281,31 @@ export class OakConsentClient {
 
   private fetchPolicies = async () => {
     try {
-      const response = await fetch(
-        `${this.policiesUrl}?appSlug=${this.appSlug}`,
-      );
-      if (!response.ok) {
-        throw new Error("Failed to fetch policies");
-      }
-
-      const data = await response.json();
-      const policies = z.array(policySchema).parse(data);
-
-      return policies;
+      return await this.networkClient.fetchPolicies(this.appSlug);
     } catch (error) {
       this.onError(error);
       return [];
+    }
+  };
+
+  /**
+   * Logs the user's when they are asked for consent the first time
+   */
+  private logFirstVisitByUser = async () => {
+    // Don't log the user if they have already visited
+    if (this.hasLoggedFirstVisit) {
+      return;
+    }
+
+    // Ensure that the user is stored in the cookie
+    // so that we don't attempt to log the user again
+    this.setConsentsInCookies(this.consentLogs);
+    this.hasLoggedFirstVisit = true;
+
+    try {
+      await this.networkClient.logUser(this.userId, this.appSlug);
+    } catch (error) {
+      this.onError(error);
     }
   };
 }
