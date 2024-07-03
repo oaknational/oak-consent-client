@@ -1,4 +1,4 @@
-import type { ConsentClient } from "@/types";
+import type { ConsentClient, State } from "@/types";
 
 /**
  * A mock implementation of the ConsentClient interface
@@ -8,20 +8,23 @@ import type { ConsentClient } from "@/types";
 export class MockConsentClient implements ConsentClient {
   appSlug = "testApp";
   userId = "testUserId";
+  constructor(
+    private state: State = {
+      policyConsents: [],
+      requiresInteraction: true,
+    },
+  ) {}
   init() {
     return Promise.resolve();
   }
-  getState() {
-    return {
-      policyConsents: [],
-      requiresInteraction: true,
-    };
+  getState(): State {
+    return this.state;
   }
-  onStateChange = () => {
+  onStateChange: ConsentClient["onStateChange"] = () => {
     return () => {};
   };
-  logConsents = () => {
+  logConsents: ConsentClient["logConsents"] = () => {
     return Promise.resolve();
   };
-  getConsent = () => "pending" as const;
+  getConsent: ConsentClient["getConsent"] = () => "pending";
 }
