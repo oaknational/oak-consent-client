@@ -111,6 +111,38 @@ describe("OakConsentClient", () => {
         expect(networkClient.logUser).toHaveBeenCalledWith(
           "testUserId",
           "testApp",
+          expect.any(Object),
+        );
+      });
+
+      it("should log additional location data when present", async () => {
+        const searchParams = new URLSearchParams({
+          utm_source: "foo",
+          utm_medium: "bar",
+          utm_campaign: "baz",
+          utm_content: "qux",
+          utm_term: "quux",
+        });
+        window.history.replaceState({}, "", `?${searchParams.toString()}`);
+        Object.defineProperty(window.document, "referrer", {
+          value: "http://referrer",
+        });
+
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
+
+        expect(networkClient.logUser).toHaveBeenCalledWith(
+          "testUserId",
+          "testApp",
+          expect.objectContaining({
+            utmSource: "foo",
+            utmMedium: "bar",
+            utmCampaign: "baz",
+            utmContent: "qux",
+            utmTerm: "quux",
+            url: window.location.href,
+            referrerUrl: "http://referrer",
+          }),
         );
       });
     });

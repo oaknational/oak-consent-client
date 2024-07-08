@@ -303,9 +303,30 @@ export class OakConsentClient implements ConsentClient {
     this.hasLoggedFirstVisit = true;
 
     try {
-      await this.networkClient.logUser(this.userId, this.appSlug);
+      await this.networkClient.logUser(
+        this.userId,
+        this.appSlug,
+        this.extractLocationParams(),
+      );
     } catch (error) {
       this.onError(error);
     }
   };
+
+  /**
+   * Extracts additional context from the current page
+   * to be logged with the user's visit
+   */
+  private extractLocationParams() {
+    const url = new URL(window.location.href);
+    return {
+      utmSource: url.searchParams.get("utm_source") ?? undefined,
+      utmMedium: url.searchParams.get("utm_medium") ?? undefined,
+      utmCampaign: url.searchParams.get("utm_campaign") ?? undefined,
+      utmContent: url.searchParams.get("utm_content") ?? undefined,
+      utmTerm: url.searchParams.get("utm_term") ?? undefined,
+      url: url.href,
+      referrerUrl: window.document.referrer || undefined,
+    };
+  }
 }

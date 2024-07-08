@@ -8,6 +8,16 @@ type NetworkClientConfig = {
   userLogUrl: string;
 };
 
+type LogUserAdditionalParams = {
+  utmSource: string;
+  utmMedium: string;
+  utmCampaign: string;
+  utmContent: string;
+  utmTerm: string;
+  url: string;
+  referrerUrl: string;
+};
+
 /**
  * Fetches policies and logs consents to oak-consent-api
  */
@@ -45,13 +55,17 @@ export class NetworkClient {
   /**
    * Logs the user's visit to oak-consent-api
    */
-  async logUser(userId: string, appSlug: string) {
+  async logUser(
+    userId: string,
+    appSlug: string,
+    additionalParams: Partial<LogUserAdditionalParams>,
+  ) {
     await fetch(this.config.userLogUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ userId, appSlug }),
+      body: JSON.stringify({ ...additionalParams, userId, appSlug }),
     });
   }
 }

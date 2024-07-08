@@ -99,7 +99,7 @@ describe(NetworkClient, () => {
         ),
       );
 
-      await subject.logUser("testUser", "testApp");
+      await subject.logUser("testUser", "testApp", { utmSource: "test" });
 
       expect(fetchMock).toHaveBeenCalledTimes(1);
       expect(fetchMock).toHaveBeenCalledWith("https://example.com/user-log", {
@@ -107,7 +107,11 @@ describe(NetworkClient, () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ userId: "testUser", appSlug: "testApp" }),
+        body: JSON.stringify({
+          utmSource: "test",
+          userId: "testUser",
+          appSlug: "testApp",
+        }),
       });
     });
   });
