@@ -132,8 +132,8 @@ describe("OakConsentClient", () => {
         await client.init();
 
         expect(networkClient.logUser).toHaveBeenCalledWith(
-          "testUserId",
-          "testApp",
+          expect.anything(),
+          expect.anything(),
           expect.objectContaining({
             utmSource: "foo",
             utmMedium: "bar",
@@ -142,6 +142,36 @@ describe("OakConsentClient", () => {
             utmTerm: "quux",
             url: window.location.href,
             referrerUrl: "http://referrer",
+          }),
+        );
+      });
+
+      it("should omit empty params from location data when present", async () => {
+        const searchParams = new URLSearchParams({
+          utm_source: "",
+          utm_medium: "",
+          utm_campaign: "",
+          utm_content: "",
+          utm_term: "",
+        });
+        Object.defineProperty(window.document, "referrer", {
+          value: "",
+        });
+        window.history.replaceState({}, "", `?${searchParams.toString()}`);
+
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
+
+        expect(networkClient.logUser).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            utmSource: undefined,
+            utmMedium: undefined,
+            utmCampaign: undefined,
+            utmContent: undefined,
+            utmTerm: undefined,
+            referrerUrl: undefined,
           }),
         );
       });

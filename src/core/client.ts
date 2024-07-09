@@ -320,11 +320,11 @@ export class OakConsentClient implements ConsentClient {
   private extractLocationParams() {
     const url = new URL(window.location.href);
     return {
-      utmSource: url.searchParams.get("utm_source") ?? undefined,
-      utmMedium: url.searchParams.get("utm_medium") ?? undefined,
-      utmCampaign: url.searchParams.get("utm_campaign") ?? undefined,
-      utmContent: url.searchParams.get("utm_content") ?? undefined,
-      utmTerm: url.searchParams.get("utm_term") ?? undefined,
+      utmSource: url.searchParams.get("utm_source") || undefined,
+      utmMedium: url.searchParams.get("utm_medium") || undefined,
+      utmCampaign: url.searchParams.get("utm_campaign") || undefined,
+      utmContent: url.searchParams.get("utm_content") || undefined,
+      utmTerm: url.searchParams.get("utm_term") || undefined,
       url: url.href,
       referrerUrl: window.document.referrer || undefined,
     };
