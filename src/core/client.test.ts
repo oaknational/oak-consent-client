@@ -115,6 +115,19 @@ describe("OakConsentClient", () => {
         );
       });
 
+      it("should log the current URL", async () => {
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
+
+        expect(networkClient.logUser).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            url: window.location.href,
+          }),
+        );
+      });
+
       it("should log additional location data when present", async () => {
         const searchParams = new URLSearchParams({
           utm_source: "foo",
@@ -126,6 +139,7 @@ describe("OakConsentClient", () => {
         window.history.replaceState({}, "", `?${searchParams.toString()}`);
         Object.defineProperty(window.document, "referrer", {
           value: "http://referrer",
+          configurable: true,
         });
 
         const client = new OakConsentClient(testProps, networkClient);
@@ -140,7 +154,6 @@ describe("OakConsentClient", () => {
             utmCampaign: "baz",
             utmContent: "qux",
             utmTerm: "quux",
-            url: window.location.href,
             referrerUrl: "http://referrer",
           }),
         );
@@ -156,6 +169,7 @@ describe("OakConsentClient", () => {
         });
         Object.defineProperty(window.document, "referrer", {
           value: "",
+          configurable: true,
         });
         window.history.replaceState({}, "", `?${searchParams.toString()}`);
 
