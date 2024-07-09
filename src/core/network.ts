@@ -58,7 +58,7 @@ export class NetworkClient {
   async logUser(
     userId: string,
     appSlug: string,
-    additionalParams: Partial<LogUserAdditionalParams>,
+    additionalParams?: Partial<LogUserAdditionalParams>,
   ) {
     await fetch(this.config.userLogUrl, {
       method: "POST",
