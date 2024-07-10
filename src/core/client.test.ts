@@ -111,6 +111,82 @@ describe("OakConsentClient", () => {
         expect(networkClient.logUser).toHaveBeenCalledWith(
           "testUserId",
           "testApp",
+          expect.any(Object),
+        );
+      });
+
+      it("should log the current URL", async () => {
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
+
+        expect(networkClient.logUser).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            url: window.location.href,
+          }),
+        );
+      });
+
+      it("should log additional location data when present", async () => {
+        const searchParams = new URLSearchParams({
+          utm_source: "foo",
+          utm_medium: "bar",
+          utm_campaign: "baz",
+          utm_content: "qux",
+          utm_term: "quux",
+        });
+        window.history.replaceState({}, "", `?${searchParams.toString()}`);
+        Object.defineProperty(window.document, "referrer", {
+          value: "http://referrer",
+          configurable: true,
+        });
+
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
+
+        expect(networkClient.logUser).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            utmSource: "foo",
+            utmMedium: "bar",
+            utmCampaign: "baz",
+            utmContent: "qux",
+            utmTerm: "quux",
+            referrerUrl: "http://referrer",
+          }),
+        );
+      });
+
+      it("should omit empty params from location data when present", async () => {
+        const searchParams = new URLSearchParams({
+          utm_source: "",
+          utm_medium: "",
+          utm_campaign: "",
+          utm_content: "",
+          utm_term: "",
+        });
+        Object.defineProperty(window.document, "referrer", {
+          value: "",
+          configurable: true,
+        });
+        window.history.replaceState({}, "", `?${searchParams.toString()}`);
+
+        const client = new OakConsentClient(testProps, networkClient);
+        await client.init();
+
+        expect(networkClient.logUser).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.anything(),
+          expect.objectContaining({
+            utmSource: undefined,
+            utmMedium: undefined,
+            utmCampaign: undefined,
+            utmContent: undefined,
+            utmTerm: undefined,
+            referrerUrl: undefined,
+          }),
         );
       });
     });
