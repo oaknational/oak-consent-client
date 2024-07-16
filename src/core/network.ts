@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { OakConsentClientError } from "./OakConsentClientError";
+
 import { ConsentLog, Policy, policySchema } from "@/types";
 
 type NetworkClientConfig = {
@@ -28,12 +30,16 @@ export class NetworkClient {
    * Fetches policies from oak-consent-api
    */
   async fetchPolicies(appSlug: string): Promise<Policy[]> {
-    const url = new URL(this.config.policiesUrl);
-    url.searchParams.set("appSlug", appSlug);
-    const response = await fetch(url.toString());
+    const urlObject = new URL(this.config.policiesUrl);
+    urlObject.searchParams.set("appSlug", appSlug);
+    const url = urlObject.toString();
+    const response = await fetch(url);
 
     if (!response.ok) {
-      throw new Error("Failed to fetch policies");
+      throw new OakConsentClientError("Failed to fetch policies", {
+        url,
+        response,
+      });
     }
 
     const data = await response.json();
@@ -46,10 +52,20 @@ export class NetworkClient {
    * Logs a user's policy consents to oak-consent-api
    */
   async logConsents(logs: ConsentLog[]) {
-    await fetch(this.config.consentLogUrl, {
+    const url = this.config.consentLogUrl;
+    const body = logs;
+    const response = await fetch(url, {
       method: "POST",
-      body: JSON.stringify(logs),
+      body: JSON.stringify(body),
     });
+
+    if (!response.ok) {
+      throw new OakConsentClientError("Failed to log consents", {
+        url,
+        body,
+        response,
+      });
+    }
   }
 
   /**
@@ -60,12 +76,22 @@ export class NetworkClient {
     appSlug: string,
     additionalParams?: Partial<LogUserAdditionalParams>,
   ) {
-    await fetch(this.config.userLogUrl, {
+    const url = this.config.userLogUrl;
+    const body = { ...additionalParams, userId, appSlug };
+    const response = await fetch(url, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ...additionalParams, userId, appSlug }),
+      body: JSON.stringify(body),
     });
+
+    if (!response.ok) {
+      throw new OakConsentClientError("Failed to log user", {
+        url,
+        body,
+        response,
+      });
+    }
   }
 }

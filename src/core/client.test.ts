@@ -5,6 +5,7 @@ import { ConsentState, Policy, State } from "../types";
 import { OakConsentClient } from "./client";
 import { NetworkClient } from "./network";
 import { getCookie, setCookie } from "./cookies";
+import { OakConsentClientError } from "./OakConsentClientError";
 
 jest.mock("./cookies");
 jest.mock("nanoid", () => ({
@@ -344,7 +345,7 @@ describe("OakConsentClient", () => {
     ]);
 
     expect(onError).toHaveBeenCalledWith(
-      new Error("Consents to all policies must be logged."),
+      new OakConsentClientError("Consents to all policies must be logged."),
     );
     expect(networkClient.logConsents).not.toHaveBeenCalled();
   });

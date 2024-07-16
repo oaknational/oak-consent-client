@@ -15,6 +15,7 @@ import {
 
 import { getCookie, setCookie } from "./cookies";
 import { NetworkClient } from "./network";
+import { OakConsentClientError } from "./OakConsentClientError";
 
 const logger = console;
 
@@ -199,7 +200,9 @@ export class OakConsentClient implements ConsentClient {
   ) => {
     try {
       if (consents.length !== this.policies?.length) {
-        throw new Error("Consents to all policies must be logged.");
+        throw new OakConsentClientError(
+          "Consents to all policies must be logged.",
+        );
       }
 
       const payload: ConsentLog[] = [];
@@ -207,7 +210,7 @@ export class OakConsentClient implements ConsentClient {
       consents.forEach((consent) => {
         const policy = this.policies?.find((p) => p.id === consent.policyId);
         if (!policy) {
-          throw new Error("Policy not found");
+          throw new OakConsentClientError("Policy not found");
         }
         payload.push({
           policyId: consent.policyId,
