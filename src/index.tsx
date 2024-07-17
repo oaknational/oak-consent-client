@@ -3,3 +3,4 @@ export { OakConsentProvider } from "./react/ConsentProvider";
 export { ConsentGate } from "./react/ConsentGate";
 export { useOakConsent } from "./react/useOakConsent";
 export { MockConsentClient as MockOakConsentClient } from "./test/MockConsentClient";
+export { OakConsentClientError } from "./core/OakConsentClientError";
