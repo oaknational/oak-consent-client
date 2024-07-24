@@ -30,6 +30,7 @@ const client = new OakConsentClient({
   appSlug: "unique-slug-for-app",
   policiesUrl: "https://example.com/policies",
   consentLogUrl: "http://example.com/consent-log",
+  userLogUrl: "http://example.com/user-log",
   onError: console.error,
 });
 
