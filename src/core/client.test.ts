@@ -66,8 +66,9 @@ describe("OakConsentClient", () => {
   });
 
   describe("Initialization", () => {
-    it("should set initial properties from the constructor", () => {
+    it("should set initial properties from the constructor", async () => {
       const client = new OakConsentClient(testProps, networkClient);
+      await client.init();
 
       expect(client.userId).toBe("testUserId");
       expect(client.appSlug).toBe("testApp");
@@ -421,6 +422,7 @@ describe("OakConsentClient", () => {
       );
 
       const client = new OakConsentClient(testProps, networkClient);
+      await client.init();
 
       expect(client.userId).toBe("persistedTestUserId");
     });
