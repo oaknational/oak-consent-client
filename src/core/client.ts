@@ -74,10 +74,10 @@ export class OakConsentClient implements ConsentClient {
   ) {
     this.onError = onError || logger.error;
     this.appSlug = appSlug;
-    const [userIdFromCookie, consentLogs] = this.getUserStateFromCookies();
-    this.hasLoggedFirstVisit = !!userIdFromCookie;
-    this.userId = userIdFromCookie ?? this.generateUserId();
-    this.consentLogs = consentLogs;
+    // Initialize with empty state, will be populated async in init()
+    this.hasLoggedFirstVisit = false;
+    this.userId = "";
+    this.consentLogs = [];
     this.state = {
       policyConsents: [],
       requiresInteraction: false,
@@ -92,7 +92,14 @@ export class OakConsentClient implements ConsentClient {
     if (this.isInitialized) {
       return;
     }
-    this.isInitialized = true;
+
+    // Load user state from cookies/storage
+    const [userIdFromCookie, consentLogs] =
+      await this.getUserStateFromCookies();
+    this.hasLoggedFirstVisit = !!userIdFromCookie;
+    this.userId = userIdFromCookie ?? this.generateUserId();
+    this.consentLogs = consentLogs;
+
     this.logFirstVisitByUser();
     const policies = await this.fetchPolicies();
     this.policies = policies;
@@ -101,6 +108,9 @@ export class OakConsentClient implements ConsentClient {
       ...this.state,
       policyConsents,
     });
+
+    // Mark as initialized after state is loaded ensure listener gets correct initial state
+    this.isInitialized = true;
   }
 
   public getState() {
@@ -134,7 +144,10 @@ export class OakConsentClient implements ConsentClient {
   };
 
   public onStateChange = (listener: Listener<State>): (() => void) => {
-    listener(this.state);
+    // call listener immediately if initialization is complete prevents sending empty state before cookies are loaded
+    if (this.isInitialized) {
+      listener(this.state);
+    }
     this.listeners.push(listener);
     return () => {
       this.listeners = this.listeners.filter((l) => l !== listener);
@@ -149,7 +162,7 @@ export class OakConsentClient implements ConsentClient {
     return nanoid();
   };
 
-  private setConsentsInCookies = (consents: ConsentLog[]) => {
+  private setConsentsInCookies = async (consents: ConsentLog[]) => {
     try {
       const cookieData: CookieData = {
         user: this.userId,
@@ -164,18 +177,17 @@ export class OakConsentClient implements ConsentClient {
 
       const cookie = JSON.stringify(cookieSchema.parse(cookieData));
 
-      setCookie(cookie);
+      await setCookie(cookie);
     } catch (error) {
       this.onError(error);
     }
   };
 
-  private getUserStateFromCookies = (): [
-    userId: string | null,
-    consentLog: ConsentLog[],
-  ] => {
+  private getUserStateFromCookies = async (): Promise<
+    [userId: string | null, consentLog: ConsentLog[]]
+  > => {
     try {
-      const val = getCookie();
+      const val = await getCookie();
       const json = val ? JSON.parse(val) : null;
       if (!json) return [null, []];
       const parsed = cookieSchema.parse(json);
@@ -225,7 +237,7 @@ export class OakConsentClient implements ConsentClient {
       });
 
       this.consentLogs = payload;
-      this.setConsentsInCookies(payload);
+      await this.setConsentsInCookies(payload);
       const policyConsents = this.getPolicyConsents();
       this.setState({
         ...this.state,
@@ -302,7 +314,7 @@ export class OakConsentClient implements ConsentClient {
 
     // Ensure that the user is stored in the cookie
     // so that we don't attempt to log the user again
-    this.setConsentsInCookies(this.consentLogs);
+    await this.setConsentsInCookies(this.consentLogs);
     this.hasLoggedFirstVisit = true;
 
     try {
