@@ -28,7 +28,7 @@
   "peerDependencies": {
     "react": "^18 || ^19",
     "react-dom": "^18 || ^19",
-    "zod": "4.x"
+    "zod": "3.x"
   },
   "dependencies": {
     "js-cookie": "^3.0.5",
