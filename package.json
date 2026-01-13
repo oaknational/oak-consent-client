@@ -1,6 +1,6 @@
 {
   "name": "@oaknational/oak-consent-client",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Client library for Oak Consent tools",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
