@@ -18,6 +18,7 @@
     "lint": "eslint src/**/*",
     "lint:precommit": "eslint src/**/* --fix",
     "prepublishOnly": "./scripts/prepublish.sh",
+    "publish:local": "npm run build && yalc publish --no-scripts",
     "test": "jest --watch --collectCoverage=false",
     "test:ci": "jest"
   },
