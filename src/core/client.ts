@@ -117,7 +117,7 @@ export class OakConsentClient implements ConsentClient {
     return this.state;
   }
 
-  private setState = (newState: State) => {
+  private readonly setState = (newState: State) => {
     if (
       !policyConsentsHaveChanged(
         this.state.policyConsents,
@@ -154,11 +154,11 @@ export class OakConsentClient implements ConsentClient {
     };
   };
 
-  private requiresInteraction = (policyConsents: PolicyConsent[]) => {
+  private readonly requiresInteraction = (policyConsents: PolicyConsent[]) => {
     return policyConsents.some((pc) => pc.consentState === "pending");
   };
 
-  private generateUserId = () => {
+  private readonly generateUserId = () => {
     return nanoid();
   };
 
@@ -257,7 +257,7 @@ export class OakConsentClient implements ConsentClient {
     return policyConsent?.consentState || "pending";
   };
 
-  private getPolicyConsents = (): PolicyConsent[] => {
+  private readonly getPolicyConsents = (): PolicyConsent[] => {
     const policies: Policy[] = this.policies || [];
     const consentLogs: ConsentLog[] = this.consentLogs;
     const policyConsents = policies.map((policy) => {

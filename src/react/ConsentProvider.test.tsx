@@ -8,6 +8,8 @@ import { useOakConsent } from "./useOakConsent";
 import type { ConsentClient, Listener, State } from "@/types";
 import { MockConsentClient } from "@/test/MockConsentClient";
 
+const noop = () => {};
+
 const mockClientState = {
   policyConsents: [
     {
@@ -55,7 +57,7 @@ describe("OakConsentProvider and useOakConsent", () => {
       let listener: Listener<State>;
       jest.spyOn(client, "onStateChange").mockImplementation((callback) => {
         listener = callback;
-        return () => {};
+        return noop;
       });
 
       const { result } = renderHook(() => useOakConsent(), {
