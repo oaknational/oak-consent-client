@@ -39,7 +39,7 @@ function policyConsentsHaveChanged(
 export class OakConsentClient implements ConsentClient {
   public appSlug: string;
   public userId: string;
-  private onError: OnError;
+  private readonly onError: OnError;
   private policies: Policy[] | null = null;
   private consentLogs: ConsentLog[] = [];
   private state: State;
@@ -162,7 +162,7 @@ export class OakConsentClient implements ConsentClient {
     return nanoid();
   };
 
-  private setConsentsInCookies = async (consents: ConsentLog[]) => {
+  private readonly setConsentsInCookies = async (consents: ConsentLog[]) => {
     try {
       const cookieData: CookieData = {
         user: this.userId,
@@ -183,7 +183,7 @@ export class OakConsentClient implements ConsentClient {
     }
   };
 
-  private getUserStateFromCookies = async (): Promise<
+  private readonly getUserStateFromCookies = async (): Promise<
     [userId: string | null, consentLog: ConsentLog[]]
   > => {
     try {
@@ -294,7 +294,7 @@ export class OakConsentClient implements ConsentClient {
     return policyConsents;
   };
 
-  private fetchPolicies = async () => {
+  private readonly fetchPolicies = async () => {
     try {
       return await this.networkClient.fetchPolicies(this.appSlug);
     } catch (error) {
@@ -306,7 +306,7 @@ export class OakConsentClient implements ConsentClient {
   /**
    * Logs the user's when they are asked for consent the first time
    */
-  private logFirstVisitByUser = async () => {
+  private readonly logFirstVisitByUser = async () => {
     // Don't log the user if they have already visited
     if (this.hasLoggedFirstVisit) {
       return;
