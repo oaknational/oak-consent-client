@@ -24,7 +24,7 @@ type LogUserAdditionalParams = {
  * Fetches policies and logs consents to oak-consent-api
  */
 export class NetworkClient {
-  constructor(private config: NetworkClientConfig) {}
+  constructor(private readonly config: NetworkClientConfig) {}
 
   /**
    * Fetches policies from oak-consent-api

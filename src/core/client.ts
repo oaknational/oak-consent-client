@@ -66,7 +66,7 @@ export class OakConsentClient implements ConsentClient {
       userLogUrl: string;
       onError?: OnError;
     },
-    private networkClient = new NetworkClient({
+    private readonly networkClient = new NetworkClient({
       policiesUrl,
       consentLogUrl,
       userLogUrl,

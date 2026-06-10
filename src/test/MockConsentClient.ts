@@ -9,7 +9,7 @@ export class MockConsentClient implements ConsentClient {
   appSlug = "testApp";
   userId = "testUserId";
   constructor(
-    private state: State = {
+    private readonly state: State = {
       policyConsents: [],
       requiresInteraction: true,
     },
