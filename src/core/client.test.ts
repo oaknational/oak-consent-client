@@ -138,8 +138,8 @@ describe("OakConsentClient", () => {
           utm_content: "qux",
           utm_term: "quux",
         });
-        window.history.replaceState({}, "", `?${searchParams.toString()}`);
-        Object.defineProperty(window.document, "referrer", {
+        globalThis.history.replaceState({}, "", `?${searchParams.toString()}`);
+        Object.defineProperty(globalThis.document, "referrer", {
           value: "http://referrer",
           configurable: true,
         });
