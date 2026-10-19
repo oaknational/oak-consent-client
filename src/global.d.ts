@@ -15,6 +15,13 @@ interface CookieInit {
   partitioned?: boolean;
 }
 
+interface CookieStoreDeleteOptions {
+  name: string;
+  domain?: string;
+  path?: string;
+  partitioned?: boolean;
+}
+
 interface CookieListItem {
   name: string;
   value: string;
@@ -23,8 +30,10 @@ interface CookieListItem {
 interface CookieStore {
   get(name: string): Promise<CookieListItem | undefined>;
   get(options: CookieStoreGetOptions): Promise<CookieListItem | undefined>;
+  getAll(name: string): Promise<CookieListItem[]>;
   set(options: CookieInit): Promise<void>;
   delete(name: string): Promise<void>;
+  delete(options: CookieStoreDeleteOptions): Promise<void>;
 }
 
 // Extend global types
